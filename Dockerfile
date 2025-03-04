@@ -55,15 +55,15 @@ RUN apt-get update && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
-# DEB_PATH speficies the path to the Teleport .deb file under
-# the build context. If not specified, DEB_BASE specifies the path
-# prefix to the Teleport .deb file without the architecture and
-# `.deb` on the end. DEB_BASE is used for multi-architecture builds.
-# DEB_PATH is deprecated and will be removed.
+
 ARG PACKAGE_URL
 
 # Note https://goteleport.com/download/
-RUN curl -L  $PACKAGE_URL | dpkg -i -
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y curl && \
+    curl -L $PACKAGE_URL -o /tmp/package.deb && \
+    dpkg -i /tmp/package.deb && \
+    rm /tmp/package.deb
 
 # Used to track whether a Teleport agent was installed using this method.
 ENV TELEPORT_INSTALL_METHOD_DOCKERFILE=true
@@ -74,7 +74,3 @@ STOPSIGNAL SIGQUIT
 
 # By setting this entry point, we expose make target as command.
 ENTRYPOINT ["/usr/bin/dumb-init", "teleport", "start", "-c", "/etc/teleport/teleport.yaml"]
-
-# Stage to launch Teleport with the fips argument
-FROM teleport AS teleport-fips
-ENTRYPOINT ["/usr/bin/dumb-init", "teleport", "start", "-c", "/etc/teleport/teleport.yaml", "--fips"]
